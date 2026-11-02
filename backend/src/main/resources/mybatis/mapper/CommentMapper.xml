@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  评价表 evaluations（实体 Comment）的 SQL 映射。
+  约束：不判断订单是否已完成、评价人是否为订单所有者；仅提供数据存取与唯一性计数。
+-->
+<mapper namespace="com.stationerymall.mapper.CommentMapper">
+
+    <!-- 基础字段清单 -->
+    <sql id="Base_Column_List">
+        id, order_id, product_id, user_id, rating, content, created_at
+    </sql>
+
+    <!-- 新增评价（唯一键 (order_id, product_id, user_id) 冲突由数据库拦截，Service 转 409） -->
+    <insert id="insert" parameterType="Comment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO evaluations (order_id, product_id, user_id, rating, content, created_at)
+        VALUES (#{orderId}, #{productId}, #{userId}, #{rating},
+                #{content,jdbcType=VARCHAR}, #{createdAt,jdbcType=TIMESTAMP})
+    </insert>
+
+    <!-- 按主键查询 -->
+    <select id="selectById" resultType="Comment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM evaluations
+        WHERE id = #{id}
+    </select>
+
+    <!--
+      【order_id + product_id + user_id】联合唯一校验：
+      返回 0 表示可评价；>0 表示重复评价，Service 应返回 409。
+    -->
+    <select id="countByOrderProductUser" resultType="int">
+        SELECT COUNT(*)
+        FROM evaluations
+        WHERE order_id = #{orderId}
+          AND product_id = #{productId}
+          AND user_id = #{userId}
+    </select>
+
+    <!-- 按「订单 + 商品 + 用户」查询评价记录（评价状态接口；唯一键保证最多一条） -->
+    <select id="selectByOrderProductUser" resultType="Comment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM evaluations
+        WHERE order_id = #{orderId}
+          AND product_id = #{productId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <!-- 按「订单 + 商品」查询评价（管理员查看，不带 user_id 条件） -->
+    <select id="selectByOrderProduct" resultType="Comment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM evaluations
+        WHERE order_id = #{orderId}
+          AND product_id = #{productId}
+        ORDER BY id ASC
+        LIMIT 1
+    </select>
+
+    <!-- 某商品的评价列表（商品详情页，按时间倒序）；LEFT JOIN 用户回填 username -->
+    <select id="selectByProductId" resultType="Comment">
+        SELECT e.id, e.order_id, e.product_id, e.user_id, e.rating, e.content, e.created_at,
+               u.username
+        FROM evaluations e
+        LEFT JOIN users u ON u.id = e.user_id
+        WHERE e.product_id = #{productId}
+        ORDER BY e.created_at DESC, e.id DESC
+    </select>
+
+    <!-- 某订单下的评价（订单详情页标识哪些商品已评价） -->
+    <select id="selectByOrderId" resultType="Comment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM evaluations
+        WHERE order_id = #{orderId}
+        ORDER BY id ASC
+    </select>
+
+    <!-- 批量查询多个订单的评价（订单列表页一次性回填，避免逐单查询） -->
+    <select id="selectByOrderIds" resultType="Comment">
+        SELECT <include refid="Base_Column_List"/>
+        FROM evaluations
+        WHERE order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
+    <!--
+      评价列表：userId 为 null（管理员）时不拼接 user_id 条件，返回全部用户评价；
+      普通用户传本人 userId，仅返回本人评价。附带订单号、商品名称、用户名。
+    -->
+    <select id="selectList" resultType="com.stationerymall.vo.CommentVO">
+        SELECT e.id, e.order_id, e.product_id, e.user_id, e.rating, e.content, e.created_at,
+               o.order_no, p.name AS product_name, u.username
+        FROM evaluations e
+        LEFT JOIN orders o ON o.id = e.order_id
+        LEFT JOIN products p ON p.id = e.product_id
+        LEFT JOIN users u ON u.id = e.user_id
+        <where>
+            <if test="userId != null">
+                e.user_id = #{userId}
+            </if>
+        </where>
+        ORDER BY e.created_at DESC, e.id DESC
+    </select>
+
+    <!-- 按主键删除（MVP 不开放入口，保留基础 CRUD） -->
+    <delete id="deleteById">
+        DELETE FROM evaluations
+        WHERE id = #{id}
+    </delete>
+</mapper>

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  订单主表 orders 的 SQL 映射。
+  约束：不判断状态能否流转、不做归属权校验；状态合法性由 Service 基于 OrderStatusEnum 判断。
+-->
+<mapper namespace="com.stationerymall.mapper.OrderMapper">
+
+    <!--
+      基础字段清单（显式列出，禁止 select *）。
+      带 o. 前缀：所有查询都与 users 左连接以回填 username（后台订单列表 / 详情展示需要）。
+    -->
+    <sql id="Base_Column_List">
+        o.id, o.order_no, o.user_id, o.status, o.total_amount, o.address, o.remark,
+        o.created_at, o.paid_at, o.shipped_at, o.completed_at, o.cancelled_at,
+        u.username
+    </sql>
+
+    <!--
+      新增订单：主键回填供订单明细使用。
+      模拟付款直接生成 PAID 订单时，paid_at 可同时写入；其它时间戳为 NULL。
+    -->
+    <insert id="insert" parameterType="Order" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO orders (order_no, user_id, status, total_amount, address, remark,
+                            created_at, paid_at, shipped_at, completed_at, cancelled_at)
+        VALUES (#{orderNo}, #{userId}, #{status}, #{totalAmount}, #{address},
+                #{remark,jdbcType=VARCHAR}, #{createdAt,jdbcType=TIMESTAMP},
+                #{paidAt,jdbcType=TIMESTAMP}, #{shippedAt,jdbcType=TIMESTAMP},
+                #{completedAt,jdbcType=TIMESTAMP}, #{cancelledAt,jdbcType=TIMESTAMP})
+    </insert>
+
+    <!-- 按主键查询订单（详情页 / 状态变更前置查询），LEFT JOIN 用户回填 username -->
+    <select id="selectById" resultType="Order">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.user_id
+        WHERE o.id = #{id}
+    </select>
+
+    <!--
+      前台「我的订单」列表：按用户 + 可选状态筛选，游标分页（id 倒序）。
+    -->
+    <select id="selectByUserId" resultType="Order">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.user_id
+        <where>
+            o.user_id = #{userId}
+            <if test="status != null">
+                AND o.status = #{status}
+            </if>
+            <if test="cursor != null">
+                AND o.id &lt; #{cursor}
+            </if>
+        </where>
+        ORDER BY o.id DESC
+        <if test="size != null">
+            LIMIT #{size}
+        </if>
+    </select>
+
+    <!--
+      后台「全部订单」列表：可按状态筛选，游标分页（id 倒序）。
+    -->
+    <select id="selectAll" resultType="Order">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.user_id
+        <where>
+            <if test="status != null">
+                AND o.status = #{status}
+            </if>
+            <if test="cursor != null">
+                AND o.id &lt; #{cursor}
+            </if>
+        </where>
+        ORDER BY o.id DESC
+        <if test="size != null">
+            LIMIT #{size}
+        </if>
+    </select>
+
+    <!--
+      按角色查询订单列表（前台 / 后台共用一条 SQL，避免 Java 拼接 SQL）。
+      userId 非 null（普通用户）→ 追加 user_id 条件，仅返回本人订单；
+      userId 为 null（管理员）→ 不追加用户条件，返回全部订单。
+    -->
+    <select id="selectList" resultType="Order">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.user_id
+        <where>
+            <if test="userId != null">
+                AND o.user_id = #{userId}
+            </if>
+            <if test="status != null">
+                AND o.status = #{status}
+            </if>
+            <if test="cursor != null">
+                AND o.id &lt; #{cursor}
+            </if>
+        </where>
+        ORDER BY o.id DESC
+        <if test="size != null">
+            LIMIT #{size}
+        </if>
+    </select>
+
+    <!-- 动态更新：状态 + 各阶段时间戳 / 地址 / 备注，null 字段不更新 -->
+    <update id="updateById" parameterType="Order">
+        UPDATE orders
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="remark != null">remark = #{remark,jdbcType=VARCHAR},</if>
+            <if test="paidAt != null">paid_at = #{paidAt,jdbcType=TIMESTAMP},</if>
+            <if test="shippedAt != null">shipped_at = #{shippedAt,jdbcType=TIMESTAMP},</if>
+            <if test="completedAt != null">completed_at = #{completedAt,jdbcType=TIMESTAMP},</if>
+            <if test="cancelledAt != null">cancelled_at = #{cancelledAt,jdbcType=TIMESTAMP},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+</mapper>

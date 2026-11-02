@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  商品表 products（实体 Goods）的 SQL 映射。
+  约束：不判断商品能否购买、库存是否足够；库存扣减/回补使用行级条件更新，影响行数由 Service 判断。
+-->
+<mapper namespace="com.stationerymall.mapper.GoodsMapper">
+
+    <!-- 基础字段清单（显式列出，禁止 select *） -->
+    <sql id="Base_Column_List">
+        id, name, price, stock, category_id, description, image_url, on_shelf, created_at, updated_at
+    </sql>
+
+    <!-- 新增商品：on_shelf 默认上架，由 Service 传入 ON_SHELF / OFF_SHELF -->
+    <insert id="insert" parameterType="Goods" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO products (name, price, stock, category_id, description, image_url, on_shelf)
+        VALUES (#{name}, #{price}, #{stock}, #{categoryId}, #{description,jdbcType=LONGVARCHAR},
+                #{imageUrl,jdbcType=VARCHAR}, #{onShelf})
+    </insert>
+
+    <!-- 按主键查询（含已下架商品，是否可见由 Service 判断） -->
+    <select id="selectById" resultType="Goods">
+        SELECT <include refid="Base_Column_List"/>
+        FROM products
+        WHERE id = #{id}
+    </select>
+
+    <!--
+      商品列表（游标分页，id 倒序）。
+      categoryId 为 null 不限分类（一级分类筛选时由 Service 换算成二级分类集合后调用）；
+      onShelf 为 null 表示不限（后台列表），传 ON_SHELF 只查上架，传 OFF_SHELF 只查下架。
+    -->
+    <select id="selectList" resultType="Goods">
+        SELECT <include refid="Base_Column_List"/>
+        FROM products
+        <where>
+            <if test="categoryId != null">
+                AND category_id = #{categoryId}
+            </if>
+            <if test="onShelf != null">
+                AND on_shelf = #{onShelf}
+            </if>
+            <if test="cursor != null">
+                AND id &lt; #{cursor}
+            </if>
+        </where>
+        ORDER BY id DESC
+        <if test="size != null">
+            LIMIT #{size}
+        </if>
+    </select>
+
+    <!--
+      商品名称模糊搜索（游标分页，id 倒序）。
+      keyword 由 Service 保证非空；CONCAT 拼接通配符，避免 SQL 注入。
+    -->
+    <select id="selectByKeyword" resultType="Goods">
+        SELECT <include refid="Base_Column_List"/>
+        FROM products
+        <where>
+            name LIKE CONCAT('%', #{keyword}, '%')
+            <if test="onShelf != null">
+                AND on_shelf = #{onShelf}
+            </if>
+            <if test="cursor != null">
+                AND id &lt; #{cursor}
+            </if>
+        </where>
+        ORDER BY id DESC
+        <if test="size != null">
+            LIMIT #{size}
+        </if>
+    </select>
+
+    <!-- 首页推荐商品：仅在架商品中随机取 limit 条（api-spec 3.3.2） -->
+    <select id="selectRecommended" resultType="Goods">
+        SELECT <include refid="Base_Column_List"/>
+        FROM products
+        WHERE on_shelf = 1
+        ORDER BY RAND()
+        LIMIT #{limit}
+    </select>
+
+    <!-- 某分类下商品数（删除分类前的占用检查） -->
+    <select id="countByCategoryId" resultType="int">
+        SELECT COUNT(*)
+        FROM products
+        WHERE category_id = #{categoryId}
+    </select>
+
+    <!-- 动态更新商品信息；on_shelf 不在本语句内变更（见 updateOnShelf） -->
+    <update id="updateById" parameterType="Goods">
+        UPDATE products
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="stock != null">stock = #{stock},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="description != null">description = #{description,jdbcType=LONGVARCHAR},</if>
+            <if test="imageUrl != null">image_url = #{imageUrl,jdbcType=VARCHAR},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 上架 / 下架切换 -->
+    <update id="updateOnShelf">
+        UPDATE products
+        SET on_shelf = #{onShelf}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 按主键删除（历史订单明细使用快照，不受影响） -->
+    <delete id="deleteById">
+        DELETE FROM products
+        WHERE id = #{id}
+    </delete>
+
+    <!--
+      行级扣减库存（防超卖核心）：
+      stock >= quantity 作为更新前置条件，影响行数 0 表示库存不足，由 Service 抛 StockNotEnoughException 并整单回滚。
+    -->
+    <update id="decreaseStock">
+        UPDATE products
+        SET stock = stock - #{quantity}
+        WHERE id = #{id}
+          AND stock >= #{quantity}
+    </update>
+
+    <!-- 行级回补库存（订单取消时使用） -->
+    <update id="increaseStock">
+        UPDATE products
+        SET stock = stock + #{quantity}
+        WHERE id = #{id}
+    </update>
+</mapper>

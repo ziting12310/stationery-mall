@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  分类表 categories 的 SQL 映射（两级自关联：parent_id IS NULL = 一级分类）。
+  约束：不判断「是否为二级分类」「同名是否重复」等业务规则。
+-->
+<mapper namespace="com.stationerymall.mapper.CategoryMapper">
+
+    <!-- 基础字段清单 -->
+    <sql id="Base_Column_List">
+        id, name, parent_id, sort_order
+    </sql>
+
+    <!-- 新增分类：parentId 为 NULL 表示一级分类 -->
+    <insert id="insert" parameterType="Category" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO categories (name, parent_id, sort_order)
+        VALUES (#{name}, #{parentId,jdbcType=BIGINT}, #{sortOrder})
+    </insert>
+
+    <!-- 按主键查询 -->
+    <select id="selectById" resultType="Category">
+        SELECT <include refid="Base_Column_List"/>
+        FROM categories
+        WHERE id = #{id}
+    </select>
+
+    <!-- 全部分类（同级按 sort_order、id 升序，便于前端组装两级树） -->
+    <select id="selectAll" resultType="Category">
+        SELECT <include refid="Base_Column_List"/>
+        FROM categories
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 所有一级分类 -->
+    <select id="selectLevelOne" resultType="Category">
+        SELECT <include refid="Base_Column_List"/>
+        FROM categories
+        WHERE parent_id IS NULL
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 指定一级分类下的二级分类 -->
+    <select id="selectByParentId" resultType="Category">
+        SELECT <include refid="Base_Column_List"/>
+        FROM categories
+        WHERE parent_id = #{parentId}
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 同级同名统计：parentId 为 null 时统计一级分类 -->
+    <select id="countByParentAndName" resultType="int">
+        SELECT COUNT(*)
+        FROM categories
+        WHERE name = #{name}
+        <choose>
+            <when test="parentId != null">
+                AND parent_id = #{parentId}
+            </when>
+            <otherwise>
+                AND parent_id IS NULL
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 动态更新名称 / 父级 / 排序 -->
+    <update id="updateById" parameterType="Category">
+        UPDATE categories
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="parentId != null">parent_id = #{parentId,jdbcType=BIGINT},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 按主键删除（是否存在子分类 / 商品由 Service 层先校验） -->
+    <delete id="deleteById">
+        DELETE FROM categories
+        WHERE id = #{id}
+    </delete>
+</mapper>

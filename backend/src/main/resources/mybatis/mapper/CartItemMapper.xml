@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  购物车表 cart_items 的 SQL 映射。
+  约束：不校验库存 / 上架状态 / 归属权；唯一键 (user_id, product_id) 的叠加逻辑由 Service 先查后改。
+-->
+<mapper namespace="com.stationerymall.mapper.CartItemMapper">
+
+    <!-- 基础字段清单 -->
+    <sql id="Base_Column_List">
+        id, user_id, product_id, quantity
+    </sql>
+
+    <!-- 新增购物车项 -->
+    <insert id="insert" parameterType="CartItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO cart_items (user_id, product_id, quantity)
+        VALUES (#{userId}, #{productId}, #{quantity})
+    </insert>
+
+    <!-- 按主键查询 -->
+    <select id="selectById" resultType="CartItem">
+        SELECT <include refid="Base_Column_List"/>
+        FROM cart_items
+        WHERE id = #{id}
+    </select>
+
+    <!-- 按「用户 + 商品」查询：用于判断是新增还是叠加数量 -->
+    <select id="selectByUserIdAndProductId" resultType="CartItem">
+        SELECT <include refid="Base_Column_List"/>
+        FROM cart_items
+        WHERE user_id = #{userId}
+          AND product_id = #{productId}
+    </select>
+
+    <!-- 某用户购物车全部行（前端购物车页） -->
+    <select id="selectByUserId" resultType="CartItem">
+        SELECT <include refid="Base_Column_List"/>
+        FROM cart_items
+        WHERE user_id = #{userId}
+        ORDER BY id ASC
+    </select>
+
+    <!-- 结算：按勾选 id 集合 + 用户查询（同时承担归属权过滤，Service 再判断越权） -->
+    <select id="selectByIdsAndUserId" resultType="CartItem">
+        SELECT <include refid="Base_Column_List"/>
+        FROM cart_items
+        WHERE user_id = #{userId}
+        <choose>
+            <when test="ids != null and ids.size() > 0">
+                AND id IN
+                <foreach collection="ids" item="itemId" open="(" separator="," close=")">
+                    #{itemId}
+                </foreach>
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+        ORDER BY id ASC
+    </select>
+
+    <!-- 修改数量 -->
+    <update id="updateQuantity">
+        UPDATE cart_items
+        SET quantity = #{quantity}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 按主键删除 -->
+    <delete id="deleteById">
+        DELETE FROM cart_items
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 下单成功后批量删除勾选行（带 user_id 条件，防止删到他人数据） -->
+    <delete id="deleteByIdsAndUserId">
+        DELETE FROM cart_items
+        WHERE user_id = #{userId}
+        <choose>
+            <when test="ids != null and ids.size() > 0">
+                AND id IN
+                <foreach collection="ids" item="itemId" open="(" separator="," close=")">
+                    #{itemId}
+                </foreach>
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+    </delete>
+
+    <!-- 清空某用户购物车 -->
+    <delete id="deleteByUserId">
+        DELETE FROM cart_items
+        WHERE user_id = #{userId}
+    </delete>
+</mapper>

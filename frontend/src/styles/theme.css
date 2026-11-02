@@ -1,0 +1,436 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   手绘涂鸦风 · hand-drawn-doodle 全局主题
+   纸张 #fffef5 · 墨黑 #2c2c2c · 马克笔 红 #ff6b6b / 青 #4ecdc4 / 黄 #ffd93d
+   只有虚线边框、硬边偏移阴影、微小歪斜、300ms ease-out
+   ============================================================ */
+
+@layer base {
+  body {
+    margin: 0;
+    background-color: #fffef5;
+    /* 笔记本横线：手绘风的纸面纹理 */
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0 31px,
+      rgba(78, 205, 196, 0.16) 31px 32px
+    );
+    color: #2c2c2c;
+    font-family: 'Segoe Print', 'Comic Sans MS', 'PingFang SC', 'Microsoft YaHei',
+      sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+
+  ::selection {
+    background: #ffd93d;
+    color: #2c2c2c;
+  }
+}
+
+@layer components {
+  /* 页面根容器：纸张底由 body 提供，这里只统一墨色与字体 */
+  .jp-page {
+    background-color: transparent;
+    color: #2c2c2c;
+    font-family: 'Segoe Print', 'Comic Sans MS', 'PingFang SC', 'Microsoft YaHei',
+      sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+
+  /* 区块：紧凑笔记本排版 py-12 md:py-16 */
+  .jp-section {
+    padding: 48px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* 卡片：白纸 + 虚线墨边 + 硬边黄阴影 + 微歪斜 */
+  .jp-card {
+    background: #ffffff;
+    border: 1px dashed #2c2c2c;
+    border-radius: 4px;
+    padding: 24px;
+    box-shadow: 2px 2px 0 #ffd93d;
+    transform: rotate(-0.5deg);
+    transition: all 300ms ease-out;
+  }
+
+  .jp-card:hover {
+    box-shadow: 3px 3px 0 #4ecdc4;
+    transform: rotate(0deg) translate(-1px, -1px);
+  }
+
+  .jp-card:active {
+    box-shadow: 1px 1px 0 #ff6b6b;
+    transform: scale(0.98);
+  }
+
+  /* 通用按钮：白底、虚线墨边、硬边黄阴影、300ms ease-out */
+  .jp-btn {
+    background: #ffffff;
+    color: #2c2c2c;
+    border: 1px dashed #2c2c2c;
+    border-radius: 4px;
+    font-family: inherit;
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    box-shadow: 2px 2px 0 #ffd93d;
+    transition: all 300ms ease-out;
+  }
+
+  .jp-btn:hover {
+    background: #ffffff;
+    color: #2c2c2c;
+    border-color: #2c2c2c;
+    box-shadow: 3px 3px 0 #4ecdc4;
+    transform: rotate(-0.5deg) translate(-1px, -1px);
+  }
+
+  .jp-btn:active {
+    box-shadow: 1px 1px 0 #ff6b6b;
+    transform: scale(0.98);
+  }
+
+  .jp-btn.is-disabled,
+  .jp-btn.is-disabled:hover {
+    background: #fffef5;
+    color: #7a7a7a;
+    border-color: #7a7a7a;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* 主按钮：墨西哥青硬阴影点缀，仍保持白底手绘感 */
+  .jp-btn-primary {
+    border-color: #2c2c2c;
+    color: #2c2c2c;
+    box-shadow: 2px 2px 0 #4ecdc4;
+  }
+
+  .jp-btn-primary:hover {
+    border-color: #2c2c2c;
+    color: #2c2c2c;
+    box-shadow: 3px 3px 0 #ffd93d;
+  }
+
+  /* 标题：中等字重 + 红色波浪下划线 */
+  .jp-title {
+    color: #2c2c2c;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-decoration: underline wavy #ff6b6b 1px;
+    text-underline-offset: 6px;
+  }
+
+  /* 辅助文字：墨色降饱和，仍满足 AA 对比度 */
+  .jp-sub {
+    color: #4f4f4f;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+
+  /* 分隔线：手绘虚线 */
+  .jp-hairline {
+    border-bottom: 1px dashed #2c2c2c;
+  }
+}
+
+@media (min-width: 768px) {
+  .jp-section {
+    padding: 64px 0;
+    gap: 32px;
+  }
+
+  .jp-card {
+    padding: 32px;
+  }
+}
+
+/* ============================================================
+   Element Plus 全局覆盖：虚线边框 + 硬边阴影，无柔和投影
+   ============================================================ */
+
+.el-card {
+  background: #ffffff;
+  border: 1px dashed #2c2c2c;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #ffd93d;
+  transition: all 300ms ease-out;
+}
+
+.el-card__header {
+  padding: 16px 24px;
+  border-bottom: 1px dashed #2c2c2c;
+  background: transparent;
+  color: #2c2c2c;
+  font-weight: 500;
+}
+
+.el-card__body {
+  color: #2c2c2c;
+  font-weight: 400;
+}
+
+/* .jp-card 用于 el-card 时不再叠加外层内边距 */
+.el-card.jp-card {
+  padding: 0;
+}
+
+.el-button {
+  border-radius: 4px;
+  border: 1px dashed #2c2c2c;
+  background: #ffffff;
+  color: #2c2c2c;
+  font-family: inherit;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  box-shadow: 2px 2px 0 #ffd93d;
+  transition: all 300ms ease-out;
+}
+
+.el-button:hover,
+.el-button:focus {
+  background: #ffffff;
+  border-color: #2c2c2c;
+  color: #2c2c2c;
+  box-shadow: 3px 3px 0 #4ecdc4;
+  transform: rotate(-0.5deg) translate(-1px, -1px);
+}
+
+.el-button:active {
+  box-shadow: 1px 1px 0 #ff6b6b;
+  transform: scale(0.98);
+}
+
+/* 各类语义按钮统一白底墨字，仅用阴影颜色区分 */
+.el-button--primary {
+  background-color: #ffffff;
+  border-color: #2c2c2c;
+  color: #2c2c2c;
+  box-shadow: 2px 2px 0 #4ecdc4;
+}
+
+.el-button--success {
+  background-color: #ffffff;
+  border-color: #2c2c2c;
+  color: #2c2c2c;
+  box-shadow: 2px 2px 0 #4ecdc4;
+}
+
+.el-button--warning {
+  background-color: #ffffff;
+  border-color: #2c2c2c;
+  color: #2c2c2c;
+  box-shadow: 2px 2px 0 #ffd93d;
+}
+
+.el-button--danger {
+  background-color: #ffffff;
+  border-color: #2c2c2c;
+  color: #2c2c2c;
+  box-shadow: 2px 2px 0 #ff6b6b;
+}
+
+.el-button.is-disabled,
+.el-button.is-disabled:hover {
+  background-color: #fffef5;
+  border-color: #7a7a7a;
+  color: #7a7a7a;
+  box-shadow: none;
+  transform: none;
+}
+
+/* 链接按钮：去掉框线，加手绘波浪下划线 */
+.el-button.is-link,
+.el-button--primary.is-link {
+  background: transparent;
+  border-color: transparent;
+  color: #2c2c2c;
+  box-shadow: none;
+  text-decoration: underline wavy #ff6b6b 1px;
+  text-underline-offset: 4px;
+}
+
+.el-button.is-link:hover,
+.el-button--primary.is-link:hover {
+  background: transparent;
+  border-color: transparent;
+  color: #ff6b6b;
+  box-shadow: none;
+  transform: none;
+}
+
+/* 输入框：仅底部虚线，聚焦变红马克笔 */
+.el-input__wrapper {
+  box-shadow: none !important;
+  border-bottom: 1px dashed #2c2c2c;
+  border-radius: 2px;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.el-input__wrapper:hover {
+  box-shadow: none !important;
+}
+
+.el-input__wrapper.is-focus {
+  box-shadow: none !important;
+  border-bottom-color: #ff6b6b;
+}
+
+.el-input__inner {
+  color: #2c2c2c;
+  font-family: inherit;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.el-textarea__inner {
+  box-shadow: none;
+  border: none;
+  border-bottom: 1px dashed #2c2c2c;
+  border-radius: 2px;
+  background: transparent;
+  color: #2c2c2c;
+  font-family: inherit;
+  font-weight: 400;
+  padding-left: 0;
+  padding-right: 0;
+  transition: border-color 300ms ease-out;
+}
+
+.el-textarea__inner:focus {
+  box-shadow: none;
+  border-bottom-color: #ff6b6b;
+}
+
+.el-input-number {
+  width: 130px;
+}
+
+.el-input-number__decrease,
+.el-input-number__increase {
+  background: transparent;
+  border: 1px dashed #2c2c2c;
+  color: #2c2c2c;
+  border-radius: 2px;
+}
+
+.el-input-number__decrease:hover,
+.el-input-number__increase:hover {
+  color: #ff6b6b;
+  background: transparent;
+}
+
+.el-form-item__label {
+  color: #4f4f4f;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* 表格：虚线分隔、纸张表头 */
+.el-table {
+  --el-table-border-color: #2c2c2c;
+  --el-table-header-bg-color: #fffef5;
+  --el-table-row-hover-bg-color: rgba(255, 217, 61, 0.16);
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  color: #2c2c2c;
+  font-weight: 400;
+  background: transparent;
+}
+
+.el-table th.el-table__cell {
+  background: #fffef5;
+  color: #2c2c2c;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-bottom: 1px dashed #2c2c2c !important;
+}
+
+.el-table td.el-table__cell,
+.el-table th.el-table__cell {
+  border-bottom: 1px dashed rgba(44, 44, 44, 0.35);
+}
+
+.el-table .el-table__inner-wrapper::before {
+  display: none;
+}
+
+/* 标签：小圆角 + 虚线 */
+.el-tag {
+  border-radius: 2px;
+  border: 1px dashed #2c2c2c;
+  background: transparent;
+  color: #2c2c2c;
+  font-weight: 400;
+}
+
+.el-pagination {
+  --el-pagination-button-color: #2c2c2c;
+  --el-pagination-hover-color: #ff6b6b;
+  font-weight: 400;
+}
+
+.el-pagination button,
+.el-pager li {
+  border-radius: 2px;
+  border: 1px dashed rgba(44, 44, 44, 0.4);
+}
+
+.el-empty__description p {
+  color: #4f4f4f;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.el-message {
+  border-radius: 4px;
+  border: 1px dashed #2c2c2c;
+  background: #fffef5;
+  box-shadow: 2px 2px 0 #ffd93d;
+  color: #2c2c2c;
+  font-weight: 400;
+}
+
+.el-message-box,
+.el-dialog {
+  border-radius: 4px;
+  border: 1px dashed #2c2c2c;
+  background: #fffef5;
+  box-shadow: 3px 3px 0 #ffd93d;
+}
+
+/* 动效降级：关闭位移 / 旋转 / 过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .jp-page *,
+  .jp-page,
+  .jp-card,
+  .jp-card:hover,
+  .jp-btn,
+  .el-card,
+  .el-button,
+  .jp-page .el-button,
+  .jp-page .el-card {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .jp-btn:hover,
+  .jp-btn:active,
+  .jp-card:hover,
+  .jp-card:active,
+  .el-button:hover,
+  .el-button:active {
+    transform: none !important;
+  }
+}
